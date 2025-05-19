@@ -1,0 +1,13 @@
+fileFormatVersion: 2
+guid: eebf07222f9d34a4680da246421ed008
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences:
+  - tileMaterial: {fileID: 2100000, guid: 55d7a40e44ce96b4aa715338a3cf582b, type: 2}
+  - hoverMaterial: {fileID: 2100000, guid: 649151f87a2f12146ada696c9c5d0c07, type: 2}
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
