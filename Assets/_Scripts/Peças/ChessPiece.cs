@@ -3,14 +3,14 @@ using UnityEngine;
 public enum ChessPieceType
 {
     None = 0,
-    Sup = 1,
-    Tanque = 2,
-    Dano = 3,
-    Rei = 4,
-	Flanco = 5
+    Rei = 1,
+    Dano = 2,
+    Flanco = 3,
+    Sup = 4,
+    Tanque = 5
 }
 
-public class S_Pecas : MonoBehaviour
+public class ChessPiece : MonoBehaviour
 {
     //Team = cor das peças (brancas/pretas)|(roxas/laranjas)
     public int team;

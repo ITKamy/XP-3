@@ -1,6 +1,6 @@
 using UnityEngine;
 
-public class Rei : S_Pecas
+public class Rei : ChessPiece
 {
     
 }

@@ -1,6 +1,6 @@
 using UnityEngine;
 
-public class Dano : S_Pecas
+public class Dano : ChessPiece
 {
     
 }
