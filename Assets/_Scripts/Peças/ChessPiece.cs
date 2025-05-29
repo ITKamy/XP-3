@@ -1,5 +1,6 @@
 using UnityEngine;
 
+//Único momento de alteração do tamanho da peça é quando elas morrem e vão para o lado o tabuleiro;
 public enum ChessPieceType
 {
     None = 0,
@@ -19,7 +20,24 @@ public class ChessPiece : MonoBehaviour
     public ChessPieceType type;
 
     private Vector3 desiredPosition;
+    private Vector3 desiredScale = Vector3.one;
 
-    //Único momento de alteração do tamanho da peça é quando elas morrem e vão para o lado o tabuleiro;
-    private Vector3 desiredScale;
+    private void Update()
+    {
+        transform.position = Vector3.Lerp(transform.position, desiredPosition, Time.deltaTime * 10);
+        transform.localScale = Vector3.Lerp(transform.localScale, desiredScale, Time.deltaTime * 10);
+    }
+
+    public virtual void SetPosition(Vector3 position, bool force = false)
+    {
+        desiredPosition = position;
+        if (force)
+            transform.position = desiredPosition;
+    }
+    public virtual void SetScale(Vector3 scale, bool force = false)
+    {
+        desiredScale = scale;
+        if(force)
+            transform.position = desiredScale;   
+    }
 }
