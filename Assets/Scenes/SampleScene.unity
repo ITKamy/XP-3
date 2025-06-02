@@ -451,8 +451,10 @@ MonoBehaviour:
   tileMaterial: {fileID: 2100000, guid: 55d7a40e44ce96b4aa715338a3cf582b, type: 2}
   hoverMaterial: {fileID: 2100000, guid: 649151f87a2f12146ada696c9c5d0c07, type: 2}
   tileSize: 2.7
-  yOffset: 0.7
+  yOffset: 0.83
   boardCenter: {x: 0, y: 0, z: 0}
+  deathSize: 0.3
+  deathSpacing: 0.3
   prefabs:
   - {fileID: 4327057539880996776, guid: 4c3a1adb7b2e76b47b5e2785f7ec349f, type: 3}
   - {fileID: 613594053301129969, guid: 725086d5494e0bc44b24a20de7b8e4b5, type: 3}
@@ -592,7 +594,7 @@ PrefabInstance:
     - target: {fileID: 1151388028547126963, guid: a39d0173fb5534245a9b17e9206cdb52,
         type: 3}
       propertyPath: m_LocalPosition.y
-      value: -0
+      value: -0.31
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
