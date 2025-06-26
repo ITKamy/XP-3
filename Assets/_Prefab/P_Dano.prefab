@@ -13,8 +13,7 @@ GameObject:
   - component: {fileID: 2965520152668512097}
   - component: {fileID: 4333228326704316553}
   - component: {fileID: 5651206633998685856}
-  - component: {fileID: 1140015299385938104}
-  m_Layer: 0
+  m_Layer: 10
   m_Name: P_Dano
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -131,19 +130,3 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 1, y: 1, z: 1}
   m_Center: {x: 0, y: 0, z: 0}
---- !u!114 &1140015299385938104
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 613594053301129969}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 78aaff8fe51fa704ea46827bba3a3003, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  team: 0
-  currentX: 0
-  currentY: 0
-  type: 0

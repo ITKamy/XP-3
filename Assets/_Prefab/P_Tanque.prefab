@@ -12,8 +12,8 @@ GameObject:
   - component: {fileID: 7088456050960492584}
   - component: {fileID: 7968951703132603443}
   - component: {fileID: 5852527377085287939}
-  - component: {fileID: -5856637401532453903}
-  m_Layer: 0
+  - component: {fileID: 1170433900426175142}
+  m_Layer: 10
   m_Name: P_Tanque
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -111,7 +111,7 @@ CapsuleCollider:
   m_Height: 2
   m_Direction: 1
   m_Center: {x: 0, y: 0, z: 0}
---- !u!114 &-5856637401532453903
+--- !u!114 &1170433900426175142
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -127,3 +127,7 @@ MonoBehaviour:
   currentX: 0
   currentY: 0
   type: 0
+  _currentHealth: 0
+  _currentDamage: 0
+  _currentShield: 0
+  hasMoved: 0

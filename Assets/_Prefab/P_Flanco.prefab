@@ -13,7 +13,7 @@ GameObject:
   - component: {fileID: 8842604814706010229}
   - component: {fileID: 7103693223260792463}
   - component: {fileID: 6003353511770259423}
-  m_Layer: 0
+  m_Layer: 10
   m_Name: P_Flanco
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -125,3 +125,7 @@ MonoBehaviour:
   currentX: 0
   currentY: 0
   type: 0
+  _currentHealth: 0
+  _currentDamage: 0
+  _currentShield: 0
+  hasMoved: 0

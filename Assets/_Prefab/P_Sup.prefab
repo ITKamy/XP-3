@@ -13,7 +13,7 @@ GameObject:
   - component: {fileID: 4358477047758111583}
   - component: {fileID: 418540700016929736}
   - component: {fileID: 40436789103017094}
-  m_Layer: 0
+  m_Layer: 10
   m_Name: P_Sup
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -125,3 +125,7 @@ MonoBehaviour:
   currentX: 0
   currentY: 0
   type: 0
+  _currentHealth: 0
+  _currentDamage: 0
+  _currentShield: 0
+  hasMoved: 0

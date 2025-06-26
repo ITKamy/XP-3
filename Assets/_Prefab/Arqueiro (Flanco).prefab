@@ -1,0 +1,154 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1001 &4334086331225247141
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 7083727104406161881}
+    m_Modifications:
+    - target: {fileID: 2937524078447297913, guid: b1412f285e1742848bf6ef0dea151b1a,
+        type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2937524078447297913, guid: b1412f285e1742848bf6ef0dea151b1a,
+        type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2937524078447297913, guid: b1412f285e1742848bf6ef0dea151b1a,
+        type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2937524078447297913, guid: b1412f285e1742848bf6ef0dea151b1a,
+        type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2937524078447297913, guid: b1412f285e1742848bf6ef0dea151b1a,
+        type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2937524078447297913, guid: b1412f285e1742848bf6ef0dea151b1a,
+        type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2937524078447297913, guid: b1412f285e1742848bf6ef0dea151b1a,
+        type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2937524078447297913, guid: b1412f285e1742848bf6ef0dea151b1a,
+        type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2937524078447297913, guid: b1412f285e1742848bf6ef0dea151b1a,
+        type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2937524078447297913, guid: b1412f285e1742848bf6ef0dea151b1a,
+        type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4659138771108483088, guid: b1412f285e1742848bf6ef0dea151b1a,
+        type: 3}
+      propertyPath: m_Name
+      value: FlancoNovo
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: b1412f285e1742848bf6ef0dea151b1a, type: 3}
+--- !u!4 &1504741155584903388 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 2937524078447297913, guid: b1412f285e1742848bf6ef0dea151b1a,
+    type: 3}
+  m_PrefabInstance: {fileID: 4334086331225247141}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1001 &7333211735032262194
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: -8679921383154817045, guid: c9c8bb0fe1814274e9b0415e3870b06d,
+        type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0.18466187
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: c9c8bb0fe1814274e9b0415e3870b06d,
+        type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 1.9939187
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: c9c8bb0fe1814274e9b0415e3870b06d,
+        type: 3}
+      propertyPath: m_LocalPosition.z
+      value: -5.062575
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: c9c8bb0fe1814274e9b0415e3870b06d,
+        type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 0.22725406
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: c9c8bb0fe1814274e9b0415e3870b06d,
+        type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0.58137846
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: c9c8bb0fe1814274e9b0415e3870b06d,
+        type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0.44979972
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: c9c8bb0fe1814274e9b0415e3870b06d,
+        type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0.6387762
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: c9c8bb0fe1814274e9b0415e3870b06d,
+        type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: c9c8bb0fe1814274e9b0415e3870b06d,
+        type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: c9c8bb0fe1814274e9b0415e3870b06d,
+        type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 919132149155446097, guid: c9c8bb0fe1814274e9b0415e3870b06d,
+        type: 3}
+      propertyPath: m_Name
+      value: Arqueiro (Flanco)
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects:
+    - targetCorrespondingSourceObject: {fileID: -8679921383154817045, guid: c9c8bb0fe1814274e9b0415e3870b06d,
+        type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1504741155584903388}
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: c9c8bb0fe1814274e9b0415e3870b06d, type: 3}
+--- !u!4 &7083727104406161881 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: c9c8bb0fe1814274e9b0415e3870b06d,
+    type: 3}
+  m_PrefabInstance: {fileID: 7333211735032262194}
+  m_PrefabAsset: {fileID: 0}

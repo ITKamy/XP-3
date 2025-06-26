@@ -13,7 +13,7 @@ GameObject:
   - component: {fileID: 8787545698890592447}
   - component: {fileID: 7857457503223614290}
   - component: {fileID: -6212098497262634324}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: P_Rei
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -125,3 +125,7 @@ MonoBehaviour:
   currentX: 0
   currentY: 0
   type: 0
+  _currentHealth: 0
+  _currentDamage: 0
+  _currentShield: 0
+  hasMoved: 0

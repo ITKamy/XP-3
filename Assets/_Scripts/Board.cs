@@ -1,376 +1,227 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
-using NUnit.Framework;
 using UnityEngine;
+using TMPro;
+using Random = UnityEngine.Random;
 
 public class Board : MonoBehaviour
 {
+    #region Atributos SerializeField
     [Header("Art Stuff")]
-    [SerializeField] private Material tileMaterial; // Material padrão do tile
-    [SerializeField] private Material hoverMaterial; // Material aplicado ao tile quando o mouse está em cima
-    [SerializeField] private float tileSize = 1.0f; // Tamanho de cada tile
-    [SerializeField] private float yOffset = 0.2f; // Elevação do tile/peça em relação ao Y do tabuleiro
-    [SerializeField] private Vector3 boardCenter = Vector3.zero; // Ponto central do tabuleiro
-    [SerializeField] private float deathSize = 0.3f;
-    [SerializeField] private float deathSpacing = 0.3f;
+    [SerializeField] private Material tileMaterialLight;
+    [SerializeField] private Material tileMaterialDark;
+    [SerializeField] private Material hoverMaterial;
+    [SerializeField] private Material validMoveMaterial;
+    [SerializeField] private float tileSize = 1.0f;
+    [SerializeField] private float yOffset = 0.2f;
+    [SerializeField] private float boardBaseHeight = 0.0f;
+
+    [Header("Procedural Cursed Tiles")]
+    [Range(0, 1)]
+    [SerializeField] private float cursedTileChance = 0.1f;
+    [SerializeField] private Material cursedMaterial;
+    [SerializeField] private float flashDuration = 0.3f;
+
+    [Header("Game Logic")]
+    [Tooltip("Qual time começa o jogo? (0 ou 1)")]
+    [SerializeField] private int startingTeam = 0;
+    [Tooltip("Qual time fica na parte de cima do tabuleiro e precisa ser girado? (0 ou 1)")]
+    [SerializeField] private int awayTeam = 1;
+    [Tooltip("Defina os nomes dos times. A ordem deve bater com os materiais e a lógica de spawn.")]
+    [SerializeField] private string[] teamNames = new string[2] { "Roxo", "Laranja" };
 
 
     [Header("Prefabs & Materiais")]
-    [SerializeField] private GameObject[] prefabs; // Prefabs das peças
-    [SerializeField] private Material[] teamMaterials; // Materiais para cada time
+    [SerializeField] private GameObject[] prefabs;
+    [SerializeField] private Material[] teamMaterials;
 
-    private ChessPiece[,] chessPieces; // Matriz de peças
-    private ChessPiece currentlyDragging; // Peça sendo arrastada
-    private List<ChessPiece> deadpurples = new List<ChessPiece>();
-    private List<ChessPiece> deadoranges = new List<ChessPiece>();
+    [Header("Camera")]
+    [SerializeField] private CameraRotationController cameraRotator;
 
-    private const int TILE_COUNT_X = 8; // Quantidade de colunas
-    private const int TILE_COUNT_Y = 8; // Quantidade de linhas
-    private GameObject[,] tiles; // Matriz de tiles
-    private Camera currentCamera; // Câmera principal
-    private Vector2Int currentHover = -Vector2Int.one; // Tile atualmente sob o cursor, inicializado como inválido
-    private GameObject previousHoveredTile; // Tile anteriormente sob o cursor
-    private Vector3 bounds; // Limites do tabuleiro para centralização
+    [Header("UI Global")]
+    [SerializeField] private PieceDetailsUI pieceDetailsUI; // Referência para o seu script
+    [SerializeField] private TextMeshProUGUI notificationText;
+    #endregion
+
+    private ChessPiece[,] chessPieces;
+    private ChessPiece currentlyDragging;
+    private const int TILE_COUNT_X = 8;
+    private const int TILE_COUNT_Y = 8;
+    private GameObject[,] tiles;
+    private Camera currentCamera;
+    private Vector2Int currentHover = -Vector2Int.one;
+    private Vector3 bounds;
+    private List<Vector2Int> highlightTiles = new List<Vector2Int>();
+    private int timeDaVez;
 
     private void Awake()
     {
-        GenerateAllTiles(tileSize, TILE_COUNT_X, TILE_COUNT_Y); // Gera todos os tiles
-        SpawnAllPieces(); // Spawna as peças
-        PositionAllPieces(); // Posiciona as peças no tabuleiro
+        GenerateAllTiles(tileSize, TILE_COUNT_X, TILE_COUNT_Y);
+        SpawnAllPieces();
+        PositionAllPieces();
+
+        // Usando a função do seu script para esconder o painel
+        if (pieceDetailsUI != null) pieceDetailsUI.SetPanelVisibility(false);
+        if (notificationText != null) notificationText.alpha = 0;
+
+        timeDaVez = startingTeam;
+        string startingTeamName = (timeDaVez < teamNames.Length) ? teamNames[timeDaVez] : $"Time {timeDaVez}";
+        Debug.Log($"<color=yellow>INÍCIO DE JOGO:</color> É a vez do time {startingTeamName}.");
     }
 
     private void Update()
     {
-        if (!currentCamera)
-        {
-            currentCamera = Camera.main; // Busca a câmera principal
-            if (!currentCamera) // Ainda não encontrou a câmera
-            {
-                Debug.LogError("Câmera principal não encontrada!");
-                return;
-            }
-        }
-
+        if (!currentCamera) { currentCamera = Camera.main; if (!currentCamera) { Debug.LogError("Câmera não encontrada!"); return; } }
+        Ray ray = currentCamera.ScreenPointToRay(Input.mousePosition);
         RaycastHit info;
-        Ray ray = currentCamera.ScreenPointToRay(Input.mousePosition); // Cria um ray a partir do cursor
 
-        if (Physics.Raycast(ray, out info, 100, LayerMask.GetMask("Tile", "Hover"))) // Testa colisão com tiles
+        if (currentlyDragging != null)
         {
-            Vector2Int hitPosition = LookupTileIndex(info.transform.gameObject);
-
-            // Se o hitPosition for válido (LookupTileIndex não retornou -Vector2Int.one)
-            if (hitPosition != -Vector2Int.one)
+            Plane horizontalPlane = new Plane(Vector3.up, Vector3.up * (transform.position.y + boardBaseHeight + yOffset));
+            if (horizontalPlane.Raycast(ray, out float distance))
             {
-                if (currentHover != hitPosition)
+                currentlyDragging.SetPosition(ray.GetPoint(distance));
+            }
+        }
+
+        Vector2Int newHover = -Vector2Int.one;
+        if (Physics.Raycast(ray, out info, 100, LayerMask.GetMask("Tile", "Hover")))
+        {
+            newHover = LookupTileIndex(info.transform.gameObject);
+        }
+
+        if (currentHover != newHover)
+        {
+            if (currentHover != -Vector2Int.one && tiles[currentHover.x, currentHover.y] != null)
+            {
+                TileInfo prevTileInfo = tiles[currentHover.x, currentHover.y].GetComponent<TileInfo>();
+                if (highlightTiles.Contains(currentHover)) { tiles[currentHover.x, currentHover.y].GetComponent<MeshRenderer>().material = validMoveMaterial; }
+                else { tiles[currentHover.x, currentHover.y].GetComponent<MeshRenderer>().material = GetOriginalTileMaterial(currentHover.x, currentHover.y, prevTileInfo.type); prevTileInfo.OnHoverExit(); }
+            }
+            if (newHover != -Vector2Int.one)
+            {
+                GameObject newHoveredTile = tiles[newHover.x, newHover.y];
+                if (!highlightTiles.Contains(newHover))
                 {
-                    if (previousHoveredTile != null)
+                    TileInfo newTileInfo = newHoveredTile.GetComponent<TileInfo>();
+                    if (newTileInfo.type == TileType.Cursed) { if (currentlyDragging == null) newTileInfo.Flash(flashDuration, 0.5f); }
+                    else { newHoveredTile.GetComponent<MeshRenderer>().material = hoverMaterial; newTileInfo.SetAlpha(1f); }
+                }
+            }
+            currentHover = newHover;
+        }
+
+        if (Input.GetMouseButtonDown(0))
+        {
+            if (Physics.Raycast(ray, out info, 100, LayerMask.GetMask("Piece")))
+            {
+                ChessPiece clickedPiece = info.transform.GetComponentInChildren<ChessPiece>();
+                if (clickedPiece != null && clickedPiece.team == timeDaVez)
+                {
+                    ClearHighlights();
+                    currentlyDragging = clickedPiece;
+                    highlightTiles = clickedPiece.GetAvailableMoves(chessPieces, tiles, TILE_COUNT_X, TILE_COUNT_Y);
+                    HighlightValidMoves();
+
+                    // ===== LÓGICA DA UI USANDO SUAS FUNÇÕES =====
+                    if (pieceDetailsUI != null)
                     {
-                        previousHoveredTile.GetComponent<MeshRenderer>().material = tileMaterial; // Volta ao material padrão
-                        previousHoveredTile.layer = LayerMask.NameToLayer("Tile");
+                        // Chama a sua função de update com os parâmetros corretos
+                        pieceDetailsUI.UpdatePieceDetails(
+                            clickedPiece.type.ToString(),
+                            clickedPiece.Health,
+                            clickedPiece.maxHealth, // Usando a nova variável
+                            clickedPiece.Damage,
+                            clickedPiece.Shield
+                        );
+                        // Chama a sua função para mostrar o painel
+                        pieceDetailsUI.SetPanelVisibility(true);
                     }
-
-                    previousHoveredTile = tiles[hitPosition.x, hitPosition.y];
-                    previousHoveredTile.GetComponent<MeshRenderer>().material = hoverMaterial; // Aplica material de hover
-                    previousHoveredTile.layer = LayerMask.NameToLayer("Hover"); // Muda layer
-
-                    currentHover = hitPosition;
                 }
-            }
-            else // O raycast atingiu algo, mas LookupTileIndex não encontrou o tile (deve ser raro se o raycast só pega tiles)
-            {
-                if (previousHoveredTile != null && currentHover != -Vector2Int.one) // currentHover != -Vector2Int.one para evitar reset desnecessário
-                {
-                    previousHoveredTile.GetComponent<MeshRenderer>().material = tileMaterial;
-                    previousHoveredTile.layer = LayerMask.NameToLayer("Tile");
-                    previousHoveredTile = null;
-                }
-                currentHover = -Vector2Int.one;
-            }
-
-
-            if (Input.GetMouseButtonDown(0)) // Clique do mouse
-            {
-                if (hitPosition != -Vector2Int.one && chessPieces[hitPosition.x, hitPosition.y] != null)
-                {
-                    // TODO: Adicionar verificação de turno aqui, se necessário
-                    currentlyDragging = chessPieces[hitPosition.x, hitPosition.y];
-                }
-            }
-
-            if (currentlyDragging != null && Input.GetMouseButtonUp(0)) // Solta o mouse
-            {
-                Vector2Int previousPosition = new Vector2Int(currentlyDragging.currentX, currentlyDragging.currentY);
-
-                // Tenta mover a peça para a nova posição (hitPosition)
-                // Só tenta mover se o hitPosition for um tile válido
-                bool validMove = false;
-                if (hitPosition != -Vector2Int.one)
-                {
-                    validMove = MoveTo(currentlyDragging, hitPosition.x, hitPosition.y);
-                }
-
-
-                if (!validMove) // Se o movimento NÃO foi válido (ou se soltou fora do tabuleiro)
-                {
-                    // Retorna a peça para sua posição original visualmente
-                    currentlyDragging.SetPosition(GetTileCenter(previousPosition.x, previousPosition.y), true); // true para forçar, caso SetPosition tenha animação
-                }
-                // Se validMove for true, a peça já foi movida e posicionada corretamente
-                // pela chamada a PositionSinglePiece dentro de MoveTo.
-
-                currentlyDragging = null; // Para de arrastar, independentemente se o movimento foi válido ou não
             }
         }
-        else // Raycast não atingiu nenhum tile
+
+        if (Input.GetMouseButtonUp(0))
         {
-            if (currentHover != -Vector2Int.one) // Se antes estava sobre um tile
+            if (currentlyDragging == null) return;
+            bool validMove = false;
+            if (currentHover != -Vector2Int.one && highlightTiles.Contains(currentHover))
             {
-                if (previousHoveredTile != null)
-                {
-                    previousHoveredTile.GetComponent<MeshRenderer>().material = tileMaterial; // Reseta material
-                    previousHoveredTile.layer = LayerMask.NameToLayer("Tile");
-                }
-                currentHover = -Vector2Int.one;
-                previousHoveredTile = null;
+                validMove = MoveTo(currentlyDragging, currentHover.x, currentHover.y);
+            }
+            if (!validMove)
+            {
+                PositionSinglePiece(currentlyDragging.currentX, currentlyDragging.currentY, true);
             }
 
-            // Se estava arrastando uma peça e soltou o mouse fora do tabuleiro
-            if (currentlyDragging != null && Input.GetMouseButtonUp(0))
-            {
-                // Retorna a peça para sua posição original
-                Vector2Int previousPosition = new Vector2Int(currentlyDragging.currentX, currentlyDragging.currentY);
-                currentlyDragging.SetPosition(GetTileCenter(previousPosition.x, previousPosition.y), true);
-                currentlyDragging = null;
-            }
+            // Usando sua função para esconder o painel ao soltar a peça
+            if (pieceDetailsUI != null) pieceDetailsUI.SetPanelVisibility(false);
+
+            ClearHighlights();
+            currentlyDragging = null;
         }
-    }
-
-    private void GenerateAllTiles(float ts, int tileCountX, int tileCountY) // Renomeado tileSize para ts para evitar conflito com o campo da classe
-    {
-        // bounds agora é calculado para centralizar o tabuleiro na origem do GameObject 'Board'
-        // Se boardCenter for (0,0,0), o centro geométrico do tabuleiro coincide com a posição do GameObject 'Board'.
-        // Se boardCenter for, por exemplo, ( (tileCountX*ts)/2, 0, (tileCountY*ts)/2 ),
-        // o canto inferior esquerdo do tabuleiro coincidirá com a posição do GameObject 'Board'.
-        bounds = new Vector3((tileCountX * ts) / 2.0f, 0, (tileCountY * ts) / 2.0f) - boardCenter;
-
-        tiles = new GameObject[tileCountX, tileCountY];
-
-        for (int x = 0; x < tileCountX; x++)
-        {
-            for (int y = 0; y < tileCountY; y++)
-            {
-                tiles[x, y] = GenerateSingleTile(ts, x, y);
-            }
-        }
-    }
-
-    private GameObject GenerateSingleTile(float ts, int x, int y) // Renomeado tileSize para ts
-    {
-        GameObject tileObject = new GameObject($"Tile_{x}_{y}");
-        tileObject.transform.parent = transform; // Os tiles são filhos do objeto Board
-
-        Mesh mesh = new Mesh();
-        tileObject.AddComponent<MeshFilter>().mesh = mesh;
-        tileObject.AddComponent<MeshRenderer>().material = tileMaterial;
-
-        // Calcula a posição do centro do tile no espaço local do objeto Board
-        // A elevação yOffset é adicionada aqui, mas a posição Y final também dependerá do transform.position.y do Board
-        float tileActualY = this.yOffset; // yOffset é relativo ao Y do tabuleiro
-        Vector3 localTileCenter = new Vector3(x * ts, tileActualY, y * ts) - bounds + new Vector3(ts / 2.0f, 0, ts / 2.0f);
-
-        // Define a posição local do tile. A posição global será transform.TransformPoint(localTileCenter) ou similar.
-        // Para simplificar, como os tiles são filhos diretos e não há rotações complexas iniciais,
-        // podemos definir a posição local e deixar a hierarquia cuidar da posição global.
-        // Se o 'Board' estiver em (0,0,0) e sem rotação, a posição local é a global.
-        // Ajustando para que a posição do tile seja relativa ao pai (o objeto Board)
-        tileObject.transform.localPosition = new Vector3(localTileCenter.x, tileActualY, localTileCenter.z); // O yOffset já está no localTileCenter.y se calculado como acima
-
-        // Os vértices da mesh do tile são relativos ao centro do tileObject (seu próprio transform)
-        float halfTile = ts / 2.0f;
-        Vector3[] vertices = new Vector3[4];
-        // Definindo os vértices no plano XZ local do tile, com Y = 0 (pois o yOffset já está na posição do tileObject)
-        vertices[0] = new Vector3(-halfTile, 0, -halfTile); // Bottom-Left
-        vertices[1] = new Vector3(-halfTile, 0, halfTile);  // Top-Left
-        vertices[2] = new Vector3(halfTile, 0, -halfTile); // Bottom-Right
-        vertices[3] = new Vector3(halfTile, 0, halfTile);  // Top-Right
-
-        // Ordem anti-horária (CCW) para faces frontais (vistas de cima)
-        // Triângulo 1: BL, TL, TR (0, 1, 3)
-        // Triângulo 2: BL, TR, BR (0, 3, 2)
-        int[] tris = new int[] { 0, 1, 3, 0, 3, 2 };
-
-        mesh.vertices = vertices;
-        mesh.triangles = tris;
-        mesh.RecalculateNormals(); // Essencial para iluminação correta
-
-        tileObject.layer = LayerMask.NameToLayer("Tile");
-        // O BoxCollider será automaticamente centralizado e dimensionado para a mesh se adicionado sem parâmetros.
-        // Se precisar de ajuste fino, defina center e size.
-        BoxCollider collider = tileObject.AddComponent<BoxCollider>();
-        collider.size = new Vector3(ts, 0.01f, ts); // Colisor fino no Y para evitar problemas de raycast com peças
-
-        return tileObject;
-    }
-
-    private void SpawnAllPieces()
-    {
-        chessPieces = new ChessPiece[TILE_COUNT_X, TILE_COUNT_Y];
-
-        int purpleTeam = 0;
-        int orangeTeam = 1;
-
-        // Time Roxo (Linha de baixo, y=0)
-        chessPieces[0, 0] = SpawnSinglePiece(ChessPieceType.Tanque, purpleTeam);
-        chessPieces[1, 0] = SpawnSinglePiece(ChessPieceType.Dano, purpleTeam);
-        chessPieces[2, 0] = SpawnSinglePiece(ChessPieceType.Sup, purpleTeam);
-        chessPieces[3, 0] = SpawnSinglePiece(ChessPieceType.Flanco, purpleTeam);
-        chessPieces[4, 0] = SpawnSinglePiece(ChessPieceType.Rei, purpleTeam);
-        chessPieces[5, 0] = SpawnSinglePiece(ChessPieceType.Flanco, purpleTeam);
-        chessPieces[6, 0] = SpawnSinglePiece(ChessPieceType.Sup, purpleTeam);
-        chessPieces[7, 0] = SpawnSinglePiece(ChessPieceType.Dano, purpleTeam);
-        // TODO: Adicionar peões (pawns) ou segunda linha se for xadrez tradicional
-
-        // Time Laranja (Linha de cima, y=7)
-        chessPieces[0, 7] = SpawnSinglePiece(ChessPieceType.Tanque, orangeTeam);
-        chessPieces[1, 7] = SpawnSinglePiece(ChessPieceType.Dano, orangeTeam);
-        chessPieces[2, 7] = SpawnSinglePiece(ChessPieceType.Sup, orangeTeam);
-        chessPieces[3, 7] = SpawnSinglePiece(ChessPieceType.Flanco, orangeTeam);
-        chessPieces[4, 7] = SpawnSinglePiece(ChessPieceType.Rei, orangeTeam);
-        chessPieces[5, 7] = SpawnSinglePiece(ChessPieceType.Flanco, orangeTeam);
-        chessPieces[6, 7] = SpawnSinglePiece(ChessPieceType.Sup, orangeTeam);
-        chessPieces[7, 7] = SpawnSinglePiece(ChessPieceType.Dano, orangeTeam);
-        // TODO: Adicionar peões (pawns) ou segunda linha se for xadrez tradicional
-    }
-
-    private ChessPiece SpawnSinglePiece(ChessPieceType type, int team)
-    {
-        // ATENÇÃO: Verifique se o seu enum ChessPieceType começa em 0 ou 1.
-        // Se começar em 0, use: Instantiate(prefabs[(int)type], ...)
-        // Se começar em 1 (como Tanque=1, Dano=2,...), então (int)type - 1 está correto.
-        ChessPiece cp = Instantiate(prefabs[(int)type - 1], transform).GetComponent<ChessPiece>(); // Peças são filhas do Board
-        cp.type = type;
-        cp.team = team;
-        // Garanta que o prefab da peça tenha um MeshRenderer
-        Renderer pieceRenderer = cp.GetComponent<Renderer>(); // Use Renderer para cobrir MeshRenderer e SkinnedMeshRenderer
-        if (pieceRenderer != null)
-        {
-            pieceRenderer.material = teamMaterials[team];
-        }
-        else
-        {
-            Debug.LogError($"Peça {type} não tem um Renderer para aplicar o material do time.");
-        }
-        return cp;
-    }
-
-    private void PositionAllPieces()
-    {
-        for (int x = 0; x < TILE_COUNT_X; x++)
-        {
-            for (int y = 0; y < TILE_COUNT_Y; y++)
-            {
-                if (chessPieces[x, y] != null)
-                {
-                    PositionSinglePiece(x, y, true); // true para forçar posição inicial sem animação
-                }
-            }
-        }
-    }
-
-    private void PositionSinglePiece(int x, int y, bool force = false)
-    {
-        if (chessPieces[x, y] == null) return;
-
-        chessPieces[x, y].currentX = x;
-        chessPieces[x, y].currentY = y;
-        chessPieces[x, y].SetPosition(GetTileCenter(x, y), force);
-    }
-
-    private Vector3 GetTileCenter(int x, int y)
-    {
-        // Calcula o centro do tile no espaço do MUNDO
-        // this.yOffset é o deslocamento vertical da peça/tile em relação ao Y do transform do Board.
-        // transform.position é a posição do objeto Board no mundo.
-
-        // Posição local do centro do tile (sem considerar o yOffset ainda, ele é aplicado na altura final)
-        Vector3 localBasePos = new Vector3(x * tileSize, 0, y * tileSize) - bounds + new Vector3(tileSize / 2.0f, 0, tileSize / 2.0f);
-
-        // Adiciona o yOffset à componente Y da posição local base
-        Vector3 localPosWithOffset = localBasePos + new Vector3(0, this.yOffset, 0);
-
-        // Converte a posição local calculada para coordenadas do mundo,
-        // considerando a posição, rotação e escala do objeto 'Board'.
-        return transform.TransformPoint(localPosWithOffset);
     }
 
     private bool MoveTo(ChessPiece cp, int x, int y)
     {
         if (cp == null) return false;
-
         Vector2Int previousPosition = new Vector2Int(cp.currentX, cp.currentY);
-
-        // TODO: Implementar regras de movimento específicas da peça (cp.CanMoveTo(x,y, chessPieces))
-        // Por enquanto, qualquer movimento para uma casa vazia ou inimiga é "válido"
-        // Exemplo de verificação básica (não é regra de xadrez, só para demonstração):
-        // if (Mathf.Abs(x - previousPosition.x) > 1 || Mathf.Abs(y - previousPosition.y) > 1)
-        // {
-        //    if(cp.type != ChessPieceType.AlgumTipoQuePodeMoverLonge) return false; // Movimento muito longo
-        // }
-
-
-        // Tem alguma peça nessa posição de destino?
         if (chessPieces[x, y] != null)
         {
-            ChessPiece ocp = chessPieces[x, y]; // Outra peça
-            if (cp.team == ocp.team) // Não pode mover para uma casa ocupada por uma peça do mesmo time
-                return false;
-
-            // Se for uma peça inimiga, ela seria capturada (aqui apenas a removemos da lógica)
-            if(ocp.team == 0)
-            {
-                deadpurples.Add(ocp);
-                ocp.SetScale(Vector3.one * deathSize);
-                ocp.SetPosition(new Vector3(8 * tileSize, yOffset - 1 * (tileSize / -2))
-                    - bounds + new Vector3(tileSize / 2, 0, tileSize / 2)
-                    + (Vector3.forward * deathSpacing) * deadpurples.Count);
-            }
-            else
-            {
-                deadoranges.Add(ocp);
-                ocp.SetScale(Vector3.one * deathSize);
-            }
-
-
-            // TODO: Implementar lógica de captura (ex: mover peça capturada para fora do tabuleiro, pontuação, etc.)
-            // Destroy(ocp.gameObject); // Exemplo: destruir a peça capturada
+            ChessPiece ocp = chessPieces[x, y];
+            if (ocp.team == cp.team) return false;
         }
-
-        // Atualiza a matriz lógica
-        chessPieces[x, y] = cp;
-        if (chessPieces[previousPosition.x, previousPosition.y] == cp) // Garante que só anula se a peça ainda estiver lá
+        TileInfo targetTileInfo = tiles[x, y].GetComponent<TileInfo>();
+        if (targetTileInfo != null && targetTileInfo.type == TileType.Cursed)
         {
-            chessPieces[previousPosition.x, previousPosition.y] = null;
+            int penaltyAmount = Random.Range(1, 6);
+            int penaltyType = Random.Range(0, 3);
+            string teamName = (cp.team < teamNames.Length) ? teamNames[cp.team] : $"Time {cp.team}";
+            string penaltyMessage = "";
+            switch (penaltyType)
+            {
+                case 0: cp.TakeDamage(penaltyAmount); penaltyMessage = $"Time {teamName} pisou na maldição! Peça perdeu {penaltyAmount} de Vida."; break;
+                case 1: cp.ReduceShield(penaltyAmount); penaltyMessage = $"Time {teamName} pisou na maldição! Peça perdeu {penaltyAmount} de Escudo."; break;
+                case 2: cp.ReduceDamage(penaltyAmount); penaltyMessage = $"Time {teamName} pisou na maldição! Peça perdeu {penaltyAmount} de Dano."; break;
+            }
+            if (notificationText != null)
+            {
+                StartCoroutine(ShowNotificationCoroutine(penaltyMessage, 3f));
+            }
         }
-
-        // Atualiza a posição visual e interna da peça
-        PositionSinglePiece(x, y); // O 'force' aqui é false por padrão, permitindo animação se houver
-
+        chessPieces[x, y] = cp;
+        chessPieces[previousPosition.x, previousPosition.y] = null;
+        PositionSinglePiece(x, y, true);
+        if (cp.type == ChessPieceType.Ataque && !cp.hasMoved) cp.hasMoved = true;
+        TrocarTurno();
         return true;
     }
 
-    private Vector2Int LookupTileIndex(GameObject hitInfo)
+    private void TrocarTurno()
     {
-        for (int x = 0; x < TILE_COUNT_X; x++)
+        timeDaVez = 1 - timeDaVez;
+        string currentTeamName = (timeDaVez < teamNames.Length) ? teamNames[timeDaVez] : $"Time {timeDaVez}";
+        Debug.Log($"<color=yellow>TURNO MUDOU:</color> Agora é a vez do time {currentTeamName}.");
+        if (cameraRotator != null)
         {
-            for (int y = 0; y < TILE_COUNT_Y; y++)
-            {
-                if (tiles[x, y] == hitInfo)
-                {
-                    return new Vector2Int(x, y);
-                }
-            }
+            cameraRotator.StartCameraTransition();
         }
-        Debug.LogWarning($"Tile não encontrado no lookup: {hitInfo.name}");
-        return -Vector2Int.one; // Tile inválido ou não encontrado
     }
+
+    #region Funções de Tabuleiro
+    private void HighlightValidMoves() { foreach (Vector2Int pos in highlightTiles) { tiles[pos.x, pos.y].GetComponent<MeshRenderer>().material = validMoveMaterial; tiles[pos.x, pos.y].GetComponent<TileInfo>().SetAlpha(1f); } }
+    private void ClearHighlights() { for (int x = 0; x < TILE_COUNT_X; x++) { for (int y = 0; y < TILE_COUNT_Y; y++) { if (tiles[x, y] != null) { tiles[x, y].GetComponent<MeshRenderer>().material = GetOriginalTileMaterial(x, y, tiles[x, y].GetComponent<TileInfo>().type); tiles[x, y].GetComponent<TileInfo>().OnHoverExit(); } } } highlightTiles.Clear(); }
+    private Material GetOriginalTileMaterial(int x, int y, TileType type) { if (type == TileType.Cursed) return cursedMaterial; return (x + y) % 2 == 0 ? tileMaterialLight : tileMaterialDark; }
+    private void GenerateAllTiles(float ts, int tileCountX, int tileCountY) { bounds = new Vector3((tileCountX * ts) / 2.0f, 0, (tileCountY * ts) / 2.0f); tiles = new GameObject[tileCountX, tileCountY]; for (int x = 0; x < tileCountX; x++) for (int y = 0; y < tileCountY; y++) tiles[x, y] = GenerateSingleTile(ts, x, y); }
+    private GameObject GenerateSingleTile(float ts, int x, int y) { GameObject t = new GameObject($"Tile_{x}_{y}"); t.transform.parent = transform; Mesh m = new Mesh(); t.AddComponent<MeshFilter>().mesh = m; t.AddComponent<MeshRenderer>(); TileInfo ti = t.AddComponent<TileInfo>(); ti.x = x; ti.y = y; bool isCursed = (y > 0 && y < TILE_COUNT_Y - 1) && (Random.value < cursedTileChance); Material mat = isCursed ? cursedMaterial : ((x + y) % 2 == 0 ? tileMaterialLight : tileMaterialDark); t.GetComponent<MeshRenderer>().material = new Material(mat); ti.SetupTileVisual(tileMaterialLight.color, tileMaterialDark.color, cursedMaterial.color, isCursed); t.transform.localPosition = new Vector3(x * ts, boardBaseHeight, y * ts) - bounds + new Vector3(ts / 2f, 0, ts / 2f); Vector3[] v = { new Vector3(-ts / 2, 0, -ts / 2), new Vector3(-ts / 2, 0, ts / 2), new Vector3(ts / 2, 0, -ts / 2), new Vector3(ts / 2, 0, ts / 2) }; int[] tr = { 0, 1, 2, 1, 3, 2 }; m.vertices = v; m.triangles = tr; m.RecalculateNormals(); t.layer = LayerMask.NameToLayer("Tile"); t.AddComponent<BoxCollider>().size = new Vector3(ts, 0.01f, ts); return t; }
+    private void PositionAllPieces() { for (int x = 0; x < TILE_COUNT_X; x++) for (int y = 0; y < TILE_COUNT_Y; y++) if (chessPieces[x, y] != null) PositionSinglePiece(x, y, true); }
+    private void PositionSinglePiece(int x, int y, bool force = false) { if (chessPieces[x, y] == null) return; ChessPiece cp = chessPieces[x, y]; cp.currentX = x; cp.currentY = y; cp.SetPosition(GetTileCenter(x, y), force); if (cp.team == awayTeam) { cp.transform.rotation = Quaternion.Euler(0f, 180f, 0f); } else { cp.transform.rotation = Quaternion.Euler(0f, 0f, 0f); } }
+    private Vector3 GetTileCenter(int x, int y) { return new Vector3(x * tileSize, yOffset, y * tileSize) - bounds + new Vector3(tileSize / 2f, 0, tileSize / 2f); }
+    private Vector2Int LookupTileIndex(GameObject hitInfo) { for (int x = 0; x < TILE_COUNT_X; x++) for (int y = 0; y < TILE_COUNT_Y; y++) if (tiles[x, y] == hitInfo) return new Vector2Int(x, y); return -Vector2Int.one; }
+    private void SpawnAllPieces() { chessPieces = new ChessPiece[TILE_COUNT_X, TILE_COUNT_Y]; List<ChessPieceType> pieceOrder = new List<ChessPieceType> { ChessPieceType.Tanque, ChessPieceType.Ataque, ChessPieceType.Flanco, ChessPieceType.Sup, ChessPieceType.Ataque, ChessPieceType.Flanco, ChessPieceType.Ataque, ChessPieceType.Tanque }; for (int x = 0; x < TILE_COUNT_X; x++) { chessPieces[x, 0] = SpawnSinglePiece(pieceOrder[x], 0); } for (int x = 0; x < TILE_COUNT_X; x++) { chessPieces[x, TILE_COUNT_Y - 1] = SpawnSinglePiece(pieceOrder[x], 1); } }
+    private ChessPiece SpawnSinglePiece(ChessPieceType type, int team) { if (type == ChessPieceType.None) return null; int pieceIndex = (int)type - 1; if (pieceIndex < 0 || pieceIndex >= prefabs.Length) return null; GameObject newPieceObject = Instantiate(prefabs[pieceIndex], transform); ChessPiece cp = newPieceObject.GetComponentInChildren<ChessPiece>(); if (cp == null) { Debug.LogError($"FALHA CRÍTICA: Não encontrei o script 'ChessPiece' no prefab '{prefabs[pieceIndex].name}'."); Destroy(newPieceObject); return null; } cp.type = type; cp.team = team; switch (type) { case ChessPieceType.Rei: cp.InitializeAttributes(35, 0, 0); break; case ChessPieceType.Ataque: cp.InitializeAttributes(50, 5, 10); break; case ChessPieceType.Flanco: cp.InitializeAttributes(25, 10, 5); break; case ChessPieceType.Sup: cp.InitializeAttributes(15, 0, 5); break; case ChessPieceType.Tanque: cp.InitializeAttributes(10, 10, 20); break; } Renderer pieceRenderer = cp.GetComponentInChildren<Renderer>(); if (pieceRenderer != null && team < teamMaterials.Length) { Material[] currentMaterials = pieceRenderer.materials; for (int i = 0; i < currentMaterials.Length; i++) { currentMaterials[i] = teamMaterials[team]; } pieceRenderer.materials = currentMaterials; } return cp; }
+    private void ShuffleList<T>(List<T> list) { for (int i = list.Count - 1; i > 0; i--) { int r = Random.Range(0, i + 1); T t = list[i]; list[i] = list[r]; list[r] = t; } }
+    private IEnumerator ShowNotificationCoroutine(string message, float duration) { if (notificationText == null) yield break; notificationText.text = message; float fadeTime = 0.5f; for (float t = 0; t < fadeTime; t += Time.deltaTime) { notificationText.alpha = Mathf.Lerp(0, 1, t / fadeTime); yield return null; } notificationText.alpha = 1; yield return new WaitForSeconds(duration); for (float t = 0; t < fadeTime; t += Time.deltaTime) { notificationText.alpha = Mathf.Lerp(1, 0, t / fadeTime); yield return null; } notificationText.alpha = 0; }
+    #endregion
 }
