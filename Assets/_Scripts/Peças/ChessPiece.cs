@@ -80,7 +80,18 @@ public class ChessPiece : MonoBehaviour
     {
         int damageAfterShield = Mathf.Max(0, incomingDamage - Shield);
         Health -= damageAfterShield;
+        DiePiece();
+
     }
+
+    public void DiePiece()
+    {
+        if (Health <= 0)
+        {
+            Destroy(gameObject); // Exemplo simples: destrói o objeto da peça
+        }
+    }
+
 
     public void ReduceShield(int amount)
     {

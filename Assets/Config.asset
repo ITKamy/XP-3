@@ -1,0 +1,55 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d31fca43e336e1d43a53396c448d894c, type: 3}
+  m_Name: Config
+  m_EditorClassIdentifier: 
+  spawn_rate:
+  - name: Ataque
+    pieceType: 2
+    min_number: 4
+    max_number: 4
+    create: 0
+    min_create: 0
+    max_create: 0
+  - name: Flanco
+    pieceType: 3
+    min_number: 2
+    max_number: 2
+    create: 0
+    min_create: 0
+    max_create: 0
+  - name: Sup
+    pieceType: 4
+    min_number: 1
+    max_number: 1
+    create: 0
+    min_create: 0
+    max_create: 0
+  - name: Tanque
+    pieceType: 5
+    min_number: 2
+    max_number: 2
+    create: 0
+    min_create: 0
+    max_create: 0
+  - name: None
+    pieceType: 0
+    min_number: 6
+    max_number: 8
+    create: 0
+    min_create: 0
+    max_create: 0
+  media: 16
+  reset: 0
+  change_position: 1
+  firsStrike: 0
+  mirrorBoard: 0

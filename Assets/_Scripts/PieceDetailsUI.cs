@@ -42,9 +42,6 @@ public class PieceDetailsUI : MonoBehaviour
     // Método para mostrar/esconder o painel
     public void SetPanelVisibility(bool isVisible)
     {
-        if (panelContainer != null)
-        {
-            panelContainer.SetActive(isVisible);
-        }
+        panelContainer.SetActive(true);
     }
 }

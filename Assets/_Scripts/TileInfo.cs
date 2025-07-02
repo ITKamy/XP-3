@@ -28,7 +28,7 @@ public class TileInfo : MonoBehaviour
 
         if (type == TileType.Cursed)
         {
-            SetAlpha(0f); // Inicia invisível
+            SetAlpha(1f); // Inicia invisível
         }
         else
         {
@@ -46,7 +46,7 @@ public class TileInfo : MonoBehaviour
         {
             if (meshRenderer != null && meshRenderer.material != null && currentEffectCoroutine == null)
             {
-                SetAlpha(0f); // Garante que volte a ser invisível se não estiver piscando
+                SetAlpha(1f); // Garante que volte a ser invisível se não estiver piscando
             }
         }
         else
@@ -84,12 +84,12 @@ public class TileInfo : MonoBehaviour
         float timer = 0f;
         while (timer < duration)
         {
-            float alpha = Mathf.Lerp(0f, maxAlpha, Mathf.PingPong(timer / (duration / 2f), 1f)); // PingPong para um efeito de pulsação
+            float alpha = Mathf.Lerp(1f, maxAlpha, Mathf.PingPong(timer / (duration / 2f), 1f)); // PingPong para um efeito de pulsação
             SetAlpha(alpha);
             timer += Time.deltaTime;
             yield return null;
         }
-        SetAlpha(0); // Volta a ser invisível após o flash
+        SetAlpha(1); // Volta a ser invisível após o flash
         currentEffectCoroutine = null;
     }
 }
