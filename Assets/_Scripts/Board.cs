@@ -114,7 +114,10 @@ public class Board : MonoBehaviour
 
         if (Input.GetMouseButtonDown(0))
         {
-            if (Physics.Raycast(ray, out info, 100, LayerMask.GetMask("Piece")))
+            Ray localRay = new Ray(GetTileCenter(currentHover.x, currentHover.y), transform.up); // Pega a possição para cima
+            Debug.DrawRay(localRay.origin, localRay.direction, Color.red, 5f);
+
+            if (Physics.Raycast(localRay, out info, 100, LayerMask.GetMask("Piece")))
             {
                 ChessPiece clickedPiece = info.transform.GetComponentInChildren<ChessPiece>();
                 if (clickedPiece != null && clickedPiece.team == timeDaVez)
