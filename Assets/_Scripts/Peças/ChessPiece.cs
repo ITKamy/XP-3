@@ -17,6 +17,7 @@ public class ChessPiece : MonoBehaviour
     public int currentX;
     public int currentY;
     public ChessPieceType type;
+    public bool hasHealedThisTurn = false;
 
     [Header("Atributos Atuais")]
     [SerializeField] private int _currentHealth;
@@ -29,7 +30,7 @@ public class ChessPiece : MonoBehaviour
     public int Health
     {
         get { return _currentHealth; }
-        set { _currentHealth = Mathf.Clamp(value, 0, 50); }
+        set { _currentHealth = Mathf.Clamp(value, 0, 20); }  // Limite máximo de 20 de vida
     }
 
     public int Damage
@@ -74,6 +75,7 @@ public class ChessPiece : MonoBehaviour
         Damage = damage;
         Shield = shield;
         hasMoved = false;
+        hasHealedThisTurn = false;
     }
 
     public void TakeDamage(int incomingDamage)
@@ -81,7 +83,6 @@ public class ChessPiece : MonoBehaviour
         int damageAfterShield = Mathf.Max(0, incomingDamage - Shield);
         Health -= damageAfterShield;
         DiePiece();
-
     }
 
     public void DiePiece()
@@ -92,7 +93,6 @@ public class ChessPiece : MonoBehaviour
         }
     }
 
-
     public void ReduceShield(int amount)
     {
         Shield -= amount;
@@ -101,7 +101,7 @@ public class ChessPiece : MonoBehaviour
 
     public void Heal(int amount)
     {
-        Health += amount;
+        Health = Mathf.Min(Health + amount, maxHealth);
     }
 
     public void ApplyShieldBoost(int amount)
@@ -120,40 +120,65 @@ public class ChessPiece : MonoBehaviour
         if (Damage < 0) Damage = 0; // Garante que o dano não fique negativo
     }
 
+    // Função que tenta curar aliado adjacente se for do tipo SUP e ainda não curou no turno
+    public void TryHealAlly(Board board)
+    {
+        if (type != ChessPieceType.Sup || hasHealedThisTurn)
+            return;
+
+        Vector2Int[] directions = new Vector2Int[]
+        {
+            new Vector2Int(1, 0), new Vector2Int(-1, 0),
+            new Vector2Int(0, 1), new Vector2Int(0, -1)
+        };
+
+        foreach (var dir in directions)
+        {
+            int nx = currentX + dir.x;
+            int ny = currentY + dir.y;
+
+            if (nx >= 0 && nx < 8 && ny >= 0 && ny < 8)
+            {
+                ChessPiece target = board.GetPieceAt(nx, ny);
+                if (target != null && target.team == this.team && target != this && target.Health < target.maxHealth)
+                {
+                    target.Heal(2); // Cura 2 de vida (balanceado)
+                    hasHealedThisTurn = true;
+                    board.ShowHealMessage(this, target);
+                    return;
+                }
+            }
+        }
+    }
+
     public virtual List<Vector2Int> GetAvailableMoves(ChessPiece[,] board, GameObject[,] tiles, int boardSizeX, int boardSizeY)
     {
         List<Vector2Int> validMoves = new List<Vector2Int>();
 
         switch (type)
         {
-            // LÓGICA PARA O TANQUE: 2 casas em direções retas, sem pular peças.
             case ChessPieceType.Tanque:
-                GenerateMovesInLine(board, boardSizeX, boardSizeY, validMoves, new Vector2Int(0, 1), 2);  // Frente
-                GenerateMovesInLine(board, boardSizeX, boardSizeY, validMoves, new Vector2Int(0, -1), 2); // Trás
-                GenerateMovesInLine(board, boardSizeX, boardSizeY, validMoves, new Vector2Int(1, 0), 2);  // Direita
-                GenerateMovesInLine(board, boardSizeX, boardSizeY, validMoves, new Vector2Int(-1, 0), 2); // Esquerda
+                GenerateMovesInLine(board, boardSizeX, boardSizeY, validMoves, new Vector2Int(0, 1), 2);
+                GenerateMovesInLine(board, boardSizeX, boardSizeY, validMoves, new Vector2Int(0, -1), 2);
+                GenerateMovesInLine(board, boardSizeX, boardSizeY, validMoves, new Vector2Int(1, 0), 2);
+                GenerateMovesInLine(board, boardSizeX, boardSizeY, validMoves, new Vector2Int(-1, 0), 2);
                 break;
 
-            // LÓGICA PARA O ATAQUE: 2 casas para frente, esquerda e direita, sem pular peças.
             case ChessPieceType.Ataque:
                 int forwardDirection = (team == 0) ? 1 : -1;
-                GenerateMovesInLine(board, boardSizeX, boardSizeY, validMoves, new Vector2Int(0, forwardDirection), 2); // Frente
-                GenerateMovesInLine(board, boardSizeX, boardSizeY, validMoves, new Vector2Int(1, 0), 2);                 // Direita
-                GenerateMovesInLine(board, boardSizeX, boardSizeY, validMoves, new Vector2Int(-1, 0), 2);                // Esquerda
+                GenerateMovesInLine(board, boardSizeX, boardSizeY, validMoves, new Vector2Int(0, forwardDirection), 2);
+                GenerateMovesInLine(board, boardSizeX, boardSizeY, validMoves, new Vector2Int(1, 0), 2);
+                GenerateMovesInLine(board, boardSizeX, boardSizeY, validMoves, new Vector2Int(-1, 0), 2);
                 break;
 
-            // LÓGICA PARA O SUP: 3 casas nas diagonais, sem pular peças.
             case ChessPieceType.Sup:
-                GenerateMovesInLine(board, boardSizeX, boardSizeY, validMoves, new Vector2Int(1, 1), 3);   // Diagonal Superior Direita
-                GenerateMovesInLine(board, boardSizeX, boardSizeY, validMoves, new Vector2Int(1, -1), 3);  // Diagonal Inferior Direita
-                GenerateMovesInLine(board, boardSizeX, boardSizeY, validMoves, new Vector2Int(-1, 1), 3);  // Diagonal Superior Esquerda
-                GenerateMovesInLine(board, boardSizeX, boardSizeY, validMoves, new Vector2Int(-1, -1), 3); // Diagonal Inferior Esquerda
+                GenerateMovesInLine(board, boardSizeX, boardSizeY, validMoves, new Vector2Int(1, 1), 3);
+                GenerateMovesInLine(board, boardSizeX, boardSizeY, validMoves, new Vector2Int(1, -1), 3);
+                GenerateMovesInLine(board, boardSizeX, boardSizeY, validMoves, new Vector2Int(-1, 1), 3);
+                GenerateMovesInLine(board, boardSizeX, boardSizeY, validMoves, new Vector2Int(-1, -1), 3);
                 break;
 
-            // ##### LÓGICA ATUALIZADA PARA O FLANCO #####
-            // Anda de 1 a 3 casas em todas as 8 direções, e pode pular peças.
             case ChessPieceType.Flanco:
-                // Define todas as 8 direções (retas e diagonais)
                 Vector2Int[] allDirections = {
                     new Vector2Int(0, 1), new Vector2Int(0, -1), new Vector2Int(1, 0), new Vector2Int(-1, 0),
                     new Vector2Int(1, 1), new Vector2Int(1, -1), new Vector2Int(-1, 1), new Vector2Int(-1, -1)
@@ -161,19 +186,14 @@ public class ChessPiece : MonoBehaviour
 
                 foreach (Vector2Int dir in allDirections)
                 {
-                    // Para cada direção, verifica as casas de 1 a 3 de distância
                     for (int i = 1; i <= 3; i++)
                     {
                         int targetX = currentX + dir.x * i;
                         int targetY = currentY + dir.y * i;
 
-                        // Verifica se está dentro do tabuleiro
                         if (targetX >= 0 && targetX < boardSizeX && targetY >= 0 && targetY < boardSizeY)
                         {
-                            // Como ele "pode passar por cima", não verificamos o caminho, apenas o destino final.
                             ChessPiece targetPiece = board[targetX, targetY];
-
-                            // Se a casa de destino estiver vazia ou com um inimigo, o movimento é válido
                             if (targetPiece == null || targetPiece.team != this.team)
                             {
                                 validMoves.Add(new Vector2Int(targetX, targetY));
@@ -187,7 +207,6 @@ public class ChessPiece : MonoBehaviour
         return validMoves;
     }
 
-    // Função auxiliar para gerar movimentos em linha (para Tanque, Ataque e Sup)
     private void GenerateMovesInLine(ChessPiece[,] board, int boardSizeX, int boardSizeY, List<Vector2Int> validMoves, Vector2Int direction, int maxSteps)
     {
         for (int i = 1; i <= maxSteps; i++)
@@ -197,22 +216,19 @@ public class ChessPiece : MonoBehaviour
 
             if (targetX < 0 || targetX >= boardSizeX || targetY < 0 || targetY >= boardSizeY)
             {
-                break; // Saiu do tabuleiro
+                break;
             }
 
             ChessPiece targetPiece = board[targetX, targetY];
             if (targetPiece != null)
             {
-                // Se a peça for inimiga, adiciona como movimento válido (captura) e para.
                 if (targetPiece.team != this.team)
                 {
                     validMoves.Add(new Vector2Int(targetX, targetY));
                 }
-                // Se for amiga ou inimiga, o caminho está bloqueado. Para.
                 break;
             }
 
-            // Se a casa estiver vazia, adiciona como movimento válido.
             validMoves.Add(new Vector2Int(targetX, targetY));
         }
     }

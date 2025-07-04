@@ -4,6 +4,8 @@ using System.Collections;
 
 public class TileInfo : MonoBehaviour
 {
+    public bool penalidadeAplicadaEsteTurno = false;
+
     public int x;
     public int y;
     public TileType type = TileType.Normal;
@@ -105,28 +107,23 @@ public class TileInfo : MonoBehaviour
 
     public void OnPieceEnter(ChessPiece piece)
     {
-        piecesOnTile++;
         occupyingPiece = piece;
-
+        piecesOnTile++;
         if (type == TileType.Cursed && cursedEffectAsset != null)
             cursedEffectAsset.SetActive(true);
     }
 
+
     public void OnPieceExit()
     {
+        occupyingPiece = null;
         piecesOnTile--;
         if (piecesOnTile <= 0)
         {
             piecesOnTile = 0;
             if (cursedEffectAsset != null)
                 cursedEffectAsset.SetActive(false);
-
-            penaltyType = -1;           // Reseta o tipo
-            occupyingPiece = null;      // Remove referência
         }
-
-
-
-
     }
+
 }

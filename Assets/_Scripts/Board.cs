@@ -55,6 +55,7 @@ public class Board : MonoBehaviour
     [SerializeField] private PieceDetailsUI pieceDetailsUI;
    
 
+    [SerializeField] private TextMeshProUGUI victoryTextUI;
 
     public NotificationPanelUI notificationPanelUI;
 
@@ -312,42 +313,50 @@ public class Board : MonoBehaviour
         TileInfo newTile = tiles[x, y].GetComponent<TileInfo>();
         newTile?.OnPieceEnter(cp); // Passa a referência da peça
 
-        // Aplica penalidade se for uma tile amaldiçoada
+        // Aplica penalidade se for uma tile amaldiçoada, apenas se ainda não aplicou nesse turno
         if (newTile != null && newTile.type == TileType.Cursed)
         {
-            int penaltyAmount = Random.Range(1, 6);
-            int penaltyType = Random.Range(0, 3);
-
-            // Armazena o tipo da penalidade para aplicar novamente nos próximos turnos
-            newTile.penaltyType = penaltyType;
-
-            string teamName = (cp.team < teamNames.Length) ? teamNames[cp.team] : $"Time {cp.team}";
-            string penaltyMessage = "";
-
-            switch (penaltyType)
+            if (!newTile.penalidadeAplicadaEsteTurno)
             {
-                case 0:
-                    cp.TakeDamage(penaltyAmount);
-                    penaltyMessage = $"Time {teamName} pisou na maldição! Peça perdeu {penaltyAmount} de Vida.";
-                    break;
-                case 1:
-                    cp.ReduceShield(penaltyAmount);
-                    penaltyMessage = $"Time {teamName} pisou na maldição! Peça perdeu {penaltyAmount} de Escudo.";
-                    break;
-                case 2:
-                    cp.ReduceDamage(penaltyAmount);
-                    penaltyMessage = $"Time {teamName} pisou na maldição! Peça perdeu {penaltyAmount} de Dano.";
-                    break;
+                int penaltyAmount = Random.Range(1, 6);
+                int penaltyType = Random.Range(0, 3);
+
+                // Armazena o tipo da penalidade para aplicar novamente nos próximos turnos
+                newTile.penaltyType = penaltyType;
+
+                string teamName = (cp.team < teamNames.Length) ? teamNames[cp.team] : $"Time {cp.team}";
+                string penaltyMessage = "";
+
+                switch (penaltyType)
+                {
+                    case 0:
+                        cp.TakeDamage(penaltyAmount);
+                        penaltyMessage = $"Time {teamName} pisou na maldição! Peça perdeu {penaltyAmount} de Vida.";
+                        break;
+                    case 1:
+                        cp.ReduceShield(penaltyAmount);
+                        penaltyMessage = $"Time {teamName} pisou na maldição! Peça perdeu {penaltyAmount} de Escudo.";
+                        break;
+                    case 2:
+                        cp.ReduceDamage(penaltyAmount);
+                        penaltyMessage = $"Time {teamName} pisou na maldição! Peça perdeu {penaltyAmount} de Dano.";
+                        break;
+                }
+
+                if (notificationPanelUI != null)
+                    notificationPanelUI.ShowMessage(penaltyMessage);
+
+                newTile.penalidadeAplicadaEsteTurno = true;
             }
-
-            if (notificationPanelUI != null)
-                notificationPanelUI.ShowMessage(penaltyMessage);
-
         }
 
         // Atualiza a matriz do tabuleiro
         chessPieces[x, y] = cp;
         chessPieces[previousPosition.x, previousPosition.y] = null;
+
+        // Atualiza a posição atual da peça
+        cp.currentX = x;
+        cp.currentY = y;
 
         // Move visualmente a peça
         PositionSinglePiece(x, y, true);
@@ -360,6 +369,9 @@ public class Board : MonoBehaviour
 
         return true;
     }
+
+
+
 
 
 
@@ -438,63 +450,84 @@ public class Board : MonoBehaviour
         if (purpleteamWin)
         {
             // Time Roxo venceu
-            if (notificationPanelUI != null)
-                notificationPanelUI.ShowMessage(" O TIME ROXO VENCEU!");
+            ShowVictoryMessage(0); 
+
         }
         else
         {
             // Time Laranja venceu
-            if (notificationPanelUI != null)
-                notificationPanelUI.ShowMessage(" O TIME LARANJA VENCEU!");
+            ShowVictoryMessage(1);
         }
 
         WinTeam = true; // Marca que o jogo terminou    
-        // Aqui você pode adicionar lógica extra como encerrar o jogo, mostrar botão de reinício, etc.
+        
     }
 
 
 
     // Método que troca o turno entre os dois times
+
     private void TrocarTurno()
     {
-        // Aplica penalidade extra para quem ainda está na maldição
+        // Reseta flags de cura dos suportes e penalidades aplicadas nas tiles amaldiçoadas
         for (int x = 0; x < TILE_COUNT_X; x++)
         {
             for (int y = 0; y < TILE_COUNT_Y; y++)
             {
                 TileInfo tile = tiles[x, y].GetComponent<TileInfo>();
-                if (tile.type == TileType.Cursed && tile.occupyingPiece != null)
+
+                // Reseta flag da penalidade para tiles amaldiçoadas
+                if (tile.type == TileType.Cursed)
                 {
-                    ChessPiece p = tile.occupyingPiece;
-                    string teamName = (p.team < teamNames.Length) ? teamNames[p.team] : $"Time {p.team}";
-                    string message = "";
-                    int repeatPenalty = Random.Range(1, 6); // Reaplica penalidade
+                    tile.penalidadeAplicadaEsteTurno = false;
 
-                    switch (tile.penaltyType)
+                    // Se tiver peça na tile amaldiçoada, reaplica a penalidade
+                    if (tile.occupyingPiece != null)
                     {
-                        case 0:
-                            p.TakeDamage(repeatPenalty);
-                            message = $"Time {teamName} ainda está na maldição!" +
-                                $"" +
-                                $" Perdeu {repeatPenalty} de Vida.";
-                            break;
-                        case 1:
-                            p.ReduceShield(repeatPenalty);
-                            message = $"Time {teamName} ainda está na maldição!" +
-                                $"" +
-                                $" Perdeu {repeatPenalty} de Escudo.";
-                            break;
-                        case 2:
-                            p.ReduceDamage(repeatPenalty);
-                            message = $"Time {teamName} ainda está na maldição! " +
-                                $"" +
-                                $"Perdeu {repeatPenalty} de Dano.";
-                            break;
+                        ChessPiece p = tile.occupyingPiece;
+                        string teamName = (p.team < teamNames.Length) ? teamNames[p.team] : $"Time {p.team}";
+                        string message = "";
+                        int repeatPenalty = Random.Range(1, 6);
+
+                        switch (tile.penaltyType)
+                        {
+                            case 0:
+                                p.TakeDamage(repeatPenalty);
+                                message = $"Time {teamName} ainda está na maldição! Perdeu {repeatPenalty} de Vida.";
+                                break;
+                            case 1:
+                                p.ReduceShield(repeatPenalty);
+                                message = $"Time {teamName} ainda está na maldição! Perdeu {repeatPenalty} de Escudo.";
+                                break;
+                            case 2:
+                                p.ReduceDamage(repeatPenalty);
+                                message = $"Time {teamName} ainda está na maldição! Perdeu {repeatPenalty} de Dano.";
+                                break;
+                        }
+
+                        if (notificationPanelUI != null)
+                            notificationPanelUI.ShowMessage(message);
                     }
+                }
 
-                    if (notificationPanelUI != null)
-                        notificationPanelUI.ShowMessage(message);
+                // Reseta flag de cura dos suportes
+                ChessPiece piece = chessPieces[x, y];
+                if (piece != null)
+                {
+                    piece.hasHealedThisTurn = false;
+                }
+            }
+        }
 
+        // Faz os suportes tentarem curar aliados ao início do turno
+        for (int x = 0; x < TILE_COUNT_X; x++)
+        {
+            for (int y = 0; y < TILE_COUNT_Y; y++)
+            {
+                ChessPiece piece = chessPieces[x, y];
+                if (piece != null && piece.type == ChessPieceType.Sup)
+                {
+                    piece.TryHealAlly(this);
                 }
             }
         }
@@ -512,6 +545,22 @@ public class Board : MonoBehaviour
             cameraRotator.StartCameraTransition();
         }
     }
+
+    public ChessPiece GetPieceAt(int x, int y)
+    {
+        if (x >= 0 && x < TILE_COUNT_X && y >= 0 && y < TILE_COUNT_Y)
+            return chessPieces[x, y];
+        return null;
+    }
+
+    public void ShowHealMessage(ChessPiece healer, ChessPiece target)
+    {
+        string teamName = (healer.team < teamNames.Length) ? teamNames[healer.team] : $"Time {healer.team}";
+        string msg = $"Peça de Suporte ({teamName}) curou 2 de Vida de uma peça aliada!";
+        notificationPanelUI?.ShowMessage(msg);
+    }
+
+
 
 
     #region Funções de Tabuleiro
@@ -787,25 +836,22 @@ public class Board : MonoBehaviour
         switch (type)
         {
             case ChessPieceType.Rei:
-                cp.InitializeAttributes(35, 0, 0);
+                cp.InitializeAttributes(20, 0, 5);
                 break;
-
             case ChessPieceType.Ataque:
-                cp.InitializeAttributes(50, 5, 10);
+                cp.InitializeAttributes(10, 10, 2);
                 break;
-
             case ChessPieceType.Flanco:
-                cp.InitializeAttributes(25, 10, 5);
+                cp.InitializeAttributes(8, 7, 5);
                 break;
-
             case ChessPieceType.Sup:
-                cp.InitializeAttributes(15, 0, 5);
+                cp.InitializeAttributes(6, 3, 8);
                 break;
-
             case ChessPieceType.Tanque:
-                cp.InitializeAttributes(10, 10, 20);
+                cp.InitializeAttributes(20, 2, 10);
                 break;
         }
+
 
         // Busca o Renderer para aplicar o material correspondente ao time da peça
         Renderer pieceRenderer = cp.GetComponentInChildren<Renderer>();
@@ -830,6 +876,15 @@ public class Board : MonoBehaviour
         return cp;
     }
 
+    public void ShowVictoryMessage(int winningTeam)
+    {
+        if (victoryTextUI != null)
+        {
+            string teamName = (winningTeam < teamNames.Length) ? teamNames[winningTeam] : $"Time {winningTeam}";
+            victoryTextUI.text = $"{teamName.ToUpper()} VENCEU!";
+            victoryTextUI.gameObject.SetActive(true);
+        }
+    }
 
     private void ShuffleList<T>(List<T> list) { for (int i = list.Count - 1; i > 0; i--) { int r = Random.Range(0, i + 1); T t = list[i]; list[i] = list[r]; list[r] = t; } }
  

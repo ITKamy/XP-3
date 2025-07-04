@@ -1,36 +1,41 @@
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using TMPro;
 
 public class NotificationPanelUI : MonoBehaviour
 {
-    public GameObject notificationTemplate; // Prefab desativado
-    public Transform notificationContainer; // O painel que segura os textos
-    public float displayTime = 6f;          // Tempo que a notificação fica visível
+    [Header("UI")]
+    public GameObject messagePrefab; // Prefab com um TextMeshProUGUI (ex: uma linha de texto)
+    public Transform contentParent;  // Onde as mensagens serão adicionadas
+    public int maxMessages = 10;     // Quantidade máxima de mensagens no painel
 
-    private Queue<GameObject> activeMessages = new Queue<GameObject>();
+    private Queue<GameObject> messageQueue = new Queue<GameObject>();
 
     public void ShowMessage(string message)
     {
-        // Cria uma nova notificação baseada no template
-        GameObject newNotification = Instantiate(notificationTemplate, notificationContainer);
-        newNotification.SetActive(true);
-        TMP_Text textComponent = newNotification.GetComponent<TMP_Text>();
-        textComponent.text = message;
+        // Cria uma nova linha de mensagem
+        GameObject newMessage = Instantiate(messagePrefab, contentParent);
+        TextMeshProUGUI text = newMessage.GetComponent<TextMeshProUGUI>();
+        if (text != null)
+            text.text = message;
 
-        activeMessages.Enqueue(newNotification);
-        StartCoroutine(RemoveAfterTime(newNotification, displayTime));
+        // Adiciona à fila
+        messageQueue.Enqueue(newMessage);
+
+        // Se exceder o limite, remove a mais antiga
+        if (messageQueue.Count > maxMessages)
+        {
+            GameObject old = messageQueue.Dequeue();
+            Destroy(old);
+        }
     }
 
-    private IEnumerator RemoveAfterTime(GameObject notification, float delay)
+    public void ClearMessages()
     {
-        yield return new WaitForSeconds(delay);
-
-        if (notification != null)
+        foreach (var msg in messageQueue)
         {
-            activeMessages.Dequeue();
-            Destroy(notification);
+            Destroy(msg);
         }
+        messageQueue.Clear();
     }
 }
