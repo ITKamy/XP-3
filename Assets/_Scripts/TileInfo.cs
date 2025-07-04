@@ -8,15 +8,25 @@ public class TileInfo : MonoBehaviour
     public int y;
     public TileType type = TileType.Normal;
 
+    [HideInInspector] public int penaltyType = -1;   // -1 = ainda não definida
+    [HideInInspector] public ChessPiece occupyingPiece = null; // Referência para saber quem está em cima
+
+
     private MeshRenderer meshRenderer;
     private Color _originalLightColor;
     private Color _originalDarkColor;
     private Color _cursedTileBaseColor;
     private Coroutine currentEffectCoroutine = null;
 
+    public GameObject cursedEffectAsset;
+    private int piecesOnTile = 0;
+
     private void Awake()
     {
         meshRenderer = GetComponent<MeshRenderer>();
+        if (cursedEffectAsset != null)
+            cursedEffectAsset.SetActive(false);
+
     }
 
     public void SetupTileVisual(Color lightColor, Color darkColor, Color cursedColor, bool isCursedType)
@@ -91,5 +101,32 @@ public class TileInfo : MonoBehaviour
         }
         SetAlpha(1); // Volta a ser invisível após o flash
         currentEffectCoroutine = null;
+    }
+
+    public void OnPieceEnter(ChessPiece piece)
+    {
+        piecesOnTile++;
+        occupyingPiece = piece;
+
+        if (type == TileType.Cursed && cursedEffectAsset != null)
+            cursedEffectAsset.SetActive(true);
+    }
+
+    public void OnPieceExit()
+    {
+        piecesOnTile--;
+        if (piecesOnTile <= 0)
+        {
+            piecesOnTile = 0;
+            if (cursedEffectAsset != null)
+                cursedEffectAsset.SetActive(false);
+
+            penaltyType = -1;           // Reseta o tipo
+            occupyingPiece = null;      // Remove referência
+        }
+
+
+
+
     }
 }

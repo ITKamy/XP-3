@@ -34,6 +34,14 @@ public class Config : ScriptableObject
         SpawnRateUpdate();
     }
 
+    public void ResetGame()
+    {
+        foreach (ChessPiece_SpawnRate spawnRate in spawn_rate)
+        {
+            spawnRate.Reset();
+        }
+    }
+
     public void SpawnRateUpdate() //Faz todos os testes referentes ao SpawnRate.
     {
         if (reset)
